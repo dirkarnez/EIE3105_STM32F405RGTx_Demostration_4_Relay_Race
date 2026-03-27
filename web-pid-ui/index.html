@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <link rel="stylesheet" href="https://meyerweb.com/eric/tools/css/reset/reset.css" type="text/css">
+    <script type="importmap">
+    {
+        "imports": {
+            "yoga-layout/load": "./pixijs-layout-prebuilt-v3.1.0-node-v22.x/yoga-layout-dist/src/load.js",
+            "@pixi/layout": "./pixijs-layout-prebuilt-v3.1.0-node-v22.x/index.mjs",
+            "@pixi/ui": "./pixijs-ui-prebuilt-v2.2.7-node-v22.x/pixi-ui.mjs",
+            "pixi.js": "./pixijs-layout-prebuilt-v3.1.0-node-v22.x/pixi.js-dist/pixi.min.mjs",
+            "tweedle.js": "./pixijs-ui-prebuilt-v2.2.7-node-v22.x/tweedle.js-dist/tweedle.es.min.js",
+            "typed-signals": "https://cdn.jsdelivr.net/npm/typed-signals@3.0.0/+esm"
+        }
+    }
+</script>
+</head>
+<body style="height: 100vh;">
+
+<script type="module">
+    import { Signal } from "typed-signals";
+    import { FancyButton, Slider } from "@pixi/ui";
+    import { Application, Container, Graphics, Assets, Sprite } from "pixi.js";
+    import "@pixi/layout";
+
+// class Slider extends Container {
+//     constructor(options = {}) {
+//         super();
+//         this.options = {
+//             x: options.x ?? 0,
+//             y: options.y ?? 0,
+//             width: options.width ?? 200,
+//             height: options.height ?? 8,
+//             min: options.min ?? 0,
+//             max: options.max ?? 100,
+//             value: options.value ?? 0,
+//             onChange: options.onChange ?? (() => {}),
+//             barColor: options.barColor ?? 0xCCCCCC,
+//             knobColor: options.knobColor ?? 0x333333,
+//         };
+//         this.x = this.options.x;
+//         this.y = this.options.y;
+//         this.bar = new Graphics();
+//         this.knob = new Graphics();
+//         this.addChild(this.bar);
+//         this.addChild(this.knob);
+
+//         this._dragging = false;
+
+//         this.draw();
+//         this.updateKnobPosition();
+
+//         // Bar events
+//         this.bar.eventMode = 'static';
+//         this.bar.cursor = 'pointer';
+//         this.bar.on('pointerdown', this.onBarPointerDown, this);
+
+//         // Knob events
+//         this.knob.eventMode = 'static';
+//         this.knob.cursor = 'pointer';
+//         this.knob.on('pointerdown', this.onKnobPointerDown, this);
+
+//         // For drag tracking
+//         this._dragMoveHandler = this.onDragMove.bind(this);
+//         this._dragEndHandler = this.onDragEnd.bind(this);
+//     }
+//     draw() {
+//         this.bar.clear();
+//         this.bar.beginFill(this.options.barColor);
+//         this.bar.drawRoundedRect(0, (this.options.height / 2) - 2, this.options.width, 4, 2);
+//         this.bar.endFill();
+//         this.knob.clear();
+//         this.knob.beginFill(this.options.knobColor);
+//         this.knob.drawCircle(0, 0, this.options.height * 1.5);
+//         this.knob.endFill();
+//     }
+//     get percent() {
+//         return (this.options.value - this.options.min) / (this.options.max - this.options.min);
+//     }
+//     set percent(v) {
+//         v = Math.max(0, Math.min(1, v));
+//         this.options.value = this.options.min + v * (this.options.max - this.options.min);
+//         this.updateKnobPosition();
+//         this.options.onChange(this.value);
+//     }
+//     updateKnobPosition() {
+//         this.knob.x = this.percent * this.options.width;
+//         this.knob.y = this.options.height / 2;
+//     }
+//     onBarPointerDown(e) {
+//         const local = e.data.getLocalPosition(this.bar);
+//         let percent = local.x / this.options.width;
+//         this.percent = percent;
+//     }
+//     onKnobPointerDown(e) {
+//         this._dragging = true;
+//         this.knob.alpha = 0.7;
+//         // The Application instance will call `setStage` after creation!
+//         if (Slider._stageRef) {
+//             Slider._stageRef.on('pointermove', this._dragMoveHandler);
+//             Slider._stageRef.on('pointerup', this._dragEndHandler);
+//             Slider._stageRef.on('pointerupoutside', this._dragEndHandler);
+//         }
+//     }
+//     onDragMove(e) {
+//         if (!this._dragging) return;
+//         const local = e.data.getLocalPosition(this.bar);
+//         let percent = local.x / this.options.width;
+//         this.percent = percent;
+//     }
+//     onDragEnd(e) {
+//         if (this._dragging) {
+//             this._dragging = false;
+//             this.knob.alpha = 1.0;
+//             if (Slider._stageRef) {
+//                 Slider._stageRef.off('pointermove', this._dragMoveHandler);
+//                 Slider._stageRef.off('pointerup', this._dragEndHandler);
+//                 Slider._stageRef.off('pointerupoutside', this._dragEndHandler);
+//             }
+//         }
+//     }
+//     set value(val) {
+//         val = Math.max(this.options.min, Math.min(this.options.max, val));
+//         this.options.value = val;
+//         this.updateKnobPosition();
+//         this.options.onChange(this.value);
+//     }
+//     get value() {
+//         return this.options.value;
+//     }
+//     // For PixiJS sample compatibility: set the stage reference on all Slider instances
+//     static setStage(stage) {
+//         Slider._stageRef = stage;
+//     }
+// }
+
+(async () => {
+    const app = new Application();
+    await app.init({
+      antialias: true, // Enable antialiasing
+      resolution: window.devicePixelRatio, // Screen resolution
+      preference: 'webgl', // 'webgl' or 'webgpu'
+      background: 'grey', 
+      resizeTo: document.body,
+      autoResize: true,
+      autoDensity: true
+    });
+  
+    document.body.appendChild(app.canvas);
+
+    /*
+    app.stage.layout = {
+        width: app.screen.width,
+        height: app.screen.height,
+        justifyContent: 'center',
+        alignItems: 'center',
+    };
+
+    // Set up the event system per PixiJS sample
+    app.stage.eventMode = 'static';
+    app.stage.hitArea = app.screen;
+
+    // Tell all Sliders about the stage
+    Slider.setStage(app.stage);
+
+     const container = new Container({
+        layout: {
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            alignContent: 'center',
+            flexWrap: 'wrap',
+            gap: 4,
+        },
+    });
+
+    app.stage.addChild(container);
+    for (let i = 0; i < 5; i++) {
+        container.addChild(new Slider({
+            width: 300,
+            value: 50,
+            onChange: (v) => {
+                // console.log('Slider value:', v);
+            }
+        }));
+    }
+
+    // // Center slider
+    // slider_1.x = app.screen.width / 2 - slider_1.options.width / 2;
+    // slider_1.y = app.screen.height / 2;
+    // */
+    const texture = await Assets.load('https://pixijs.com/assets/bunny.png');
+
+    // Create a new layout for the stage that will fill the entire screen
+    // and center the content
+    app.stage.layout = {
+        width: app.screen.width,
+        height: app.screen.height,
+        justifyContent: 'center',
+        alignItems: 'center',
+    };
+
+    // Create and add a container to the stage that will be used to hold the bunnies
+    // The container will be centered in the stage and will have a gap of 4 pixels
+    // between the bunnies
+    // The container will also wrap the bunnies if there are too many to fit in a single row
+    const container = new Container({
+        layout: {
+            width: '80%',
+            height: '80%',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            alignContent: 'center',
+            flexWrap: 'wrap',
+            gap: 4,
+        },
+    });
+    
+    app.stage.addChild(container);
+
+    /*
+    // Create a grid of bunny sprites
+    for (let i = 0; i < 50; i++) {
+        // Create a bunny Sprite and enable layout
+        // The width/height of the bunny will be the size of the texture by default
+        const bunny = new Sprite({ texture, layout: true });
+        // Add the bunny to the container
+        container.addChild(bunny);
+    }*/
+    const args = {
+        width: 450,
+        height: 35,
+        radius: 0,
+        borderColor: "#FFFFFF",
+        border: 3,
+        backgroundColor: "#ff729a",
+        handleBorder: 3,
+        meshColor: "#e91e63"
+    };
+    
+    const button = new FancyButton({
+       defaultView: new Graphics()
+              .rect(0, 0, 100, 50, 15)
+              .fill(0x222222),
+       hoverView: new Graphics()
+              .rect(0, 0, 100, 50, 15)
+              .fill(0xaaaaaa),
+       pressedView: new Graphics()
+              .rect(0, 0, 100, 50, 15)
+              .fill(0xFFFFFF),
+       text: 'Click me!',
+       animations: {
+            hover: {
+                props: {
+                    scale: {
+                        x: 1.1,
+                        y: 1.1,
+                    }
+                },
+                duration: 100,
+            },
+            pressed: {
+                props: {
+                    scale: {
+                        x: 0.9,
+                        y: 0.9,
+                    }
+                },
+                duration: 100,
+            }
+        }
+    });
+    
+    button.onPress.connect(() => {
+      button.text = 'Button pressed!';
+    });
+    
+    //container.addChild(button); // FancyButton add button, Button add button.view
+
+    const sliderCreator = (value, onChange) => {
+        const slider = new Slider({
+            bg: new Graphics()
+                .roundRect(0, 0, args.width, args.height, args.radius)
+                .fill(args.borderColor)
+                .roundRect(args.border, args.border, args.width - args.border * 2, args.height - args.border * 2, args.radius)
+                .fill(args.backgroundColor),
+            fill: new Graphics()
+                .roundRect(0, 0, args.width, args.height, args.radius)
+                .fill(args.borderColor)
+                .roundRect(args.border, args.border, args.width - args.border * 2, args.height - args.border * 2, args.radius)
+                .fill(args.fillColor),
+            slider: new Graphics()
+                .circle(0, 0, 20 + args.handleBorder)
+                .fill(args.borderColor)
+                .circle(0, 0, 20)
+                .fill(args.meshColor),
+            min: 0,
+            max: 100,
+            value: value, // Initial value
+            showValue: false
+        });
+        slider.onUpdate.connect(value => onChange(`${value}`));
+        slider.layout = {
+            width: 100,
+            objectFit: 'cover',
+            transformOrigin: 'center',
+            backgroundColor: "red",
+        };
+        slider.rotation = Math.PI / 2;
+        return slider;
+    }
+
+    const Pslider = sliderCreator(10, () => {});
+    const Islider = sliderCreator(10, () => {});
+    const Dslider = sliderCreator(10, () => {});
+
+    container.addChild(Pslider);
+    container.addChild(Islider);
+    container.addChild(Dslider);
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <button id="start">Start sending text to serial</button>
+    <script>
+        class Serial extends EventTarget {
+            getPorts() {
+                navigator.serial.getPorts().then((ports) => {
+                    // Initialize the list of available ports with `ports` on page load.
+                });
+            }
+            /*
+            navigator.serial.addEventListener("connect", (e) => {
+                // Connect to `e.target` or add it to a list of available ports.
+            });
+            
+            navigator.serial.addEventListener("disconnect", (e) => {
+                // Remove `e.target` from the list of available ports.
+            });
+
+            navigator.serial.getPorts().then((ports) => {
+                // Initialize the list of available ports with `ports` on page load.
+            });
+            */
+
+            /*
+            const usbVendorId = 0xabcd;
+            navigator.serial
+                .requestPort({ filters: [{ usbVendorId }] })
+                .then((port) => {
+                // Connect to `port` or add it to the list of available ports.
+                })
+                .catch((e) => {
+                // The user didn't select a port.
+                });
+            */
+           
+        }
+        // [使用 Web Serial API 在浏览器中实现串口通讯（纯前端）-CSDN博客](https://blog.csdn.net/Naisu_kun/article/details/132522118)
+        const buttonStart = document.getElementById("start");
+        buttonStart.addEventListener("click", function () {
+
+        });
+    </script>
+</body>
+</html>
