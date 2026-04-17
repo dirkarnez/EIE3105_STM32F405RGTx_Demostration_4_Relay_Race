@@ -860,7 +860,9 @@ int main(void)
 				} else if (lock == 1) {
 					if (sensor_left > sensor_right) {
 						left = (left * 90) / 100;
+						right = NORMAL_SPEED;
 					} else if (sensor_right > sensor_left) {
+						left = NORMAL_SPEED;
 						right = (right * 90) / 100;
 					} else {
 						left = NORMAL_SPEED;
