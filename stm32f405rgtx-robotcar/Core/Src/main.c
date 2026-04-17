@@ -36,6 +36,7 @@
 #include <ssd1306_fonts.h>
 #define ADC_TO_BINARY(adc_value, NTH) (((adc_value) < (2048)) ? (1 << NTH) : 0)
 #define IS_NTH_BIT_ONE(TARGET, NTH) (((TARGET) & (1 << NTH)) == (1 << NTH))
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
 
 /* USER CODE END Includes */
 
@@ -859,14 +860,14 @@ int main(void)
 					}
 				} else if (lock == 1) {
 					if (sensor_left > sensor_right) {
-						left = (left * 90) / 100;
+						left = MAX(((left * 80) / 100), 15000);
 						right = NORMAL_SPEED;
 					} else if (sensor_right > sensor_left) {
 						left = NORMAL_SPEED;
-						right = (right * 90) / 100;
+						right = MAX(((right * 80) / 100), 15000);
 					} else {
 						left = NORMAL_SPEED;
-						right = 18000;
+						right = 15000;
 					}
 				}
 			}
@@ -891,7 +892,7 @@ int main(void)
 					is_turning = 1;
 					map[CHECKPOINT_B_INDEX] = 1;
 				} //arrive D
-				else if (index == CHECKPOINT_C_INDEX && (get_left_counter_value(left_offset) > 7200 && get_right_counter_value(right_offset) > 7200)) {
+				else if (index == CHECKPOINT_C_INDEX && (get_left_counter_value(left_offset) > 7450 && get_right_counter_value(right_offset) > 7450)) {
 					left = 0;
 					right = NORMAL_SPEED / 2;
 					right_snapshot = get_right_counter_value(right_offset);
@@ -935,7 +936,7 @@ int main(void)
 				}
 			} // finishing turning at D
 			else if (index == CHECKPOINT_D_INDEX) {
-				if ( get_right_counter_value(right_offset) > (right_snapshot + 400)) {
+				if ( get_right_counter_value(right_offset) > (right_snapshot + 600)) {
 					is_turning = 0;
 					right_snapshot = 0;
 
@@ -984,13 +985,13 @@ int main(void)
 
 
 
-		// snprintf(buffer, sizeof(buffer), "L: %"PRIu32"", get_left_counter_value());
-		snprintf(buffer, sizeof(buffer), "L: %d", left);
+		snprintf(buffer, sizeof(buffer), "L: %"PRIu32"", get_left_counter_value());
+		// snprintf(buffer, sizeof(buffer), "L: %d", left);
 		ssd1306_SetCursor(0, 25); // Set cursor below the GPIO states
 		ssd1306_WriteString(buffer, Font_11x18, White);
 
-		// snprintf(buffer, sizeof(buffer), "R: %"PRIu32"", get_right_counter_value()); // 4,294,967,295
-		snprintf(buffer, sizeof(buffer), "R: %d", right);
+		snprintf(buffer, sizeof(buffer), "R: %"PRIu32"", get_right_counter_value()); // 4,294,967,295
+		// snprintf(buffer, sizeof(buffer), "R: %d", right);
 		ssd1306_SetCursor(0, 45); // Set cursor below the voltage/current display
 		ssd1306_WriteString(buffer, Font_11x18, White);
 
