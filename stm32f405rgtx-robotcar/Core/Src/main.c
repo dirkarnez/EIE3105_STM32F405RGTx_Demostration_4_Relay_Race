@@ -34,7 +34,7 @@
 #include <math.h>
 #include <ssd1306.h>
 #include <ssd1306_fonts.h>
-#define ADC_TO_BINARY(adc_value, NTH) (((adc_value) > (2048)) ? (1 << NTH) : 0)
+#define ADC_TO_BINARY(adc_value, NTH) (((adc_value) < (2048)) ? (1 << NTH) : 0)
 #define IS_NTH_BIT_ONE(TARGET, NTH) (((TARGET) & (1 << NTH)) == (1 << NTH))
 
 /* USER CODE END Includes */
@@ -83,10 +83,10 @@ unsigned int y_axis_adc1 = 0;	// 'y'
 uint8_t sensor_array_value = 0;
 
 #define is_center_on_only() ( \
-	(sensor_array_value == 4) || \
-	(sensor_array_value == 6) || \
-	(sensor_array_value == 12) || \
-	(sensor_array_value == 14) \
+	(sensor_array_value == 0b00100) || \
+	(sensor_array_value == 0b00110) || \
+	(sensor_array_value == 0b01100) || \
+	(sensor_array_value == 0b01110) \
 	? 1 : 0)
 
 #define reverse_5_bits(value) ( \
@@ -306,18 +306,18 @@ void left_turn() {
 	motor(30000, 0);
 }
 
-#define NORMAL_SPEED (40000)
-#define INNER_PERCENTAGE_COMPENSATION (0.05)
-#define OUTER_PERCENTAGE_COMPENSATION (0.25)
-
-double exp_like(unsigned char larger, unsigned char smaller) {
-    return ((IS_NTH_BIT_ONE(larger, 1) * (OUTER_PERCENTAGE_COMPENSATION)) +
-    		(IS_NTH_BIT_ONE(larger, 0) * (INNER_PERCENTAGE_COMPENSATION))) -
-    		((IS_NTH_BIT_ONE(smaller, 1) * (OUTER_PERCENTAGE_COMPENSATION)) +
-    		(IS_NTH_BIT_ONE(smaller, 0) * (INNER_PERCENTAGE_COMPENSATION)));
-
-	// return  (x + (x * x) + (x * x * x));
-}
+#define NORMAL_SPEED (25000)
+//#define INNER_PERCENTAGE_COMPENSATION (0.05)
+//#define OUTER_PERCENTAGE_COMPENSATION (0.25)
+//
+//double exp_like(unsigned char larger, unsigned char smaller) {
+//    return ((IS_NTH_BIT_ONE(larger, 1) * (OUTER_PERCENTAGE_COMPENSATION)) +
+//    		(IS_NTH_BIT_ONE(larger, 0) * (INNER_PERCENTAGE_COMPENSATION))) -
+//    		((IS_NTH_BIT_ONE(smaller, 1) * (OUTER_PERCENTAGE_COMPENSATION)) +
+//    		(IS_NTH_BIT_ONE(smaller, 0) * (INNER_PERCENTAGE_COMPENSATION)));
+//
+//	// return  (x + (x * x) + (x * x * x));
+//}
 
 int left = 0;
 int right = 0;
@@ -346,6 +346,8 @@ unsigned char sensor_right = 0;
 //    motor(right, left);
 //}
 
+static char map[] = { 0, 0, 0, 0, 0 };
+
 #define CHECKPOINT_A_INDEX (0)
 #define CHECKPOINT_B_INDEX (1)
 #define CHECKPOINT_C_INDEX (2)
@@ -363,41 +365,35 @@ int get_current_checkpoint_index() {
 }
 */
 
-//int get_current_checkpoint_index() {
-//    int last_completed_index = -1;
-//	for (int i = sizeof(map) - 1; i >= 0; i--) {
-//		if (map[i] > 0) {
-//            last_completed_index = i;
-//            break;
-//		}
-//	}
-//	return (last_completed_index + 1) % sizeof(map);
-//}
-
-int is_crossroad(int idx) {
-	if (idx == CHECKPOINT_C_INDEX) {
-		return sensor_array_value == 0b01111 ||
-				sensor_array_value == 0b00111 ||
-				sensor_array_value == 0b00011 ||
-				sensor_array_value == 0b00001;
-	} else {
-		return sensor_array_value == 0b11111;
+int get_current_checkpoint_index() {
+    int last_completed_index = -1;
+	for (int i = sizeof(map) - 1; i >= 0; i--) {
+		if (map[i] > 0) {
+            last_completed_index = i;
+            break;
+		}
 	}
+	return (last_completed_index + 1) % sizeof(map);
 }
 
-int crossroad_count = 0;
-int is_in_crossroad = 0;
+int bar_count = 0;
+int previously_in_a_bar = 0;
 
-//void set_crossroad_count() {
-//	if (is_crossroad()) {
-//		if (is_in_crossroad == 0) {
-//			is_in_crossroad = 1;
-//			crossroad_count += 1;
-//		}
-//	} else {
-//		is_in_crossroad = 0;
-//	}
-//}
+int is_crossroad(int idx) {
+	return bar_count == 0 || bar_count == 3 || bar_count == 4 || bar_count == 11 || bar_count == 13 || bar_count == 16;
+}
+
+void set_bar_count() {
+	if (sensor_array_value != 0 && previously_in_a_bar == 0) {
+		previously_in_a_bar = 1;
+		bar_count += 1;
+	}
+
+	if (sensor_array_value == 0) {
+		previously_in_a_bar = 0;
+	}
+
+}
 
 // Callback function of SysTick
 void HAL_SYSTICK_Callback(void) {
@@ -668,7 +664,7 @@ void sr04_init(){
 	HAL_TIM_Base_Start_IT(&htim8);
 }
 
-static uint32_t counter1;
+static uint32_t counter_sr04;
 
 uint32_t elapsed_ms( void ) {
     static uint32_t previous;
@@ -678,9 +674,9 @@ uint32_t elapsed_ms( void ) {
     return diff;
 }
 
-uint32_t map(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
+//uint32_t map(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max) {
+//  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+//}
 
 /* USER CODE END 0 */
 
@@ -772,6 +768,17 @@ int main(void)
 
 	HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)&tx_buffer, sizeof(tx_buffer));
 
+    int index = 0;
+    int is_turning = 0;
+    uint32_t left_snapshot = 0;
+    uint32_t right_snapshot = 0;
+    uint32_t left_offset = 0;
+    uint32_t right_offset = 0;
+
+    int lock = 0;
+
+    bar_count = 0;
+
 
 
   /* USER CODE END 2 */
@@ -794,22 +801,17 @@ int main(void)
 //		ssd1306_SetCursor(0, 0);  // Set cursor to the top of the display
 //		ssd1306_WriteString(buffer, Font_11x18, White);
 
-		counter1 += elapsed_ms();
-		if( counter1 >= 50 ) {
-		    counter1 = 0;
+		counter_sr04 += elapsed_ms();
+
+
+		if( counter_sr04 >= 50 ) {
+			counter_sr04 = 0;
 		    sr04_trigger();
 		}
 
 		// set_crossroad_count();
 
-		// index = get_current_checkpoint_index();
-		if (Distance < 120) {
-			speed = 0;
-		} else if (Distance < 350 && Distance >= 120) {
-			speed = (uint32_t)((map(Distance, 120, 350, 0, 100) * NORMAL_SPEED) / 100);
-		} else {
-			speed = NORMAL_SPEED;
-		}
+		index = get_current_checkpoint_index();
 
 		sensor_array_value = ADC_TO_BINARY(ADC2Array[4], 4) |
 		    ADC_TO_BINARY(ADC2Array[3], 3) |
@@ -817,28 +819,150 @@ int main(void)
 		    ADC_TO_BINARY(ADC2Array[1], 1) |
 		    ADC_TO_BINARY(ADC2Array[0], 0);
 
-		if (is_center_on_only()) {
-			left = speed;
-			right = speed;
-		} else {
-			sensor_left = get_left();
-			sensor_right = get_right();
+//		if (is_center_on_only()) {
+//			left = speed;
+//			right = speed;
+//		} else {
+//			sensor_left = get_left();
+//			sensor_right = get_right();
+//
+//			if (sensor_left > sensor_right) {
+//				left = speed + ((-1) * (int)(speed * exp_like(sensor_left, sensor_right)));
+//				right = speed;
+//			} else if (sensor_right > sensor_left) {
+//				left = speed;
+//				right = speed + ((-1) * (int)(speed * exp_like(sensor_right, sensor_left)));
+//			} else {
+//				left = speed;
+//				right = speed;
+//			}
+//		}
 
-			if (sensor_left > sensor_right) {
-				left = speed + ((-1) * (int)(speed * exp_like(sensor_left, sensor_right)));
-				right = speed;
-			} else if (sensor_right > sensor_left) {
-				left = speed;
-				right = speed + ((-1) * (int)(speed * exp_like(sensor_right, sensor_left)));
+		if (is_turning == 0) {
+			if (is_center_on_only()) {
+				left = NORMAL_SPEED;
+				right = NORMAL_SPEED;
 			} else {
-				left = speed;
-				right = speed;
+				sensor_left = get_left();
+				sensor_right = get_right();
+
+				if (lock == 0) {
+					if (sensor_left > sensor_right) {
+						left = 15000;
+						right = NORMAL_SPEED;
+					} else if (sensor_right > sensor_left) {
+						left = NORMAL_SPEED;
+						right = 15000;
+					} else {
+						left = NORMAL_SPEED;
+						right = NORMAL_SPEED;
+					}
+				} else if (lock == 1) {
+					if (sensor_left > sensor_right) {
+						left = (left * 90) / 100;
+					} else if (sensor_right > sensor_left) {
+						right = (right * 90) / 100;
+					} else {
+						left = NORMAL_SPEED;
+						right = 18000;
+					}
+				}
+			}
+
+/*			if (is_crossroad(index)) {*/
+				// check point detected
+				// stop detecting for a while
+				// change state
+				//arrive B
+				if (index == CHECKPOINT_A_INDEX && (get_left_counter_value(left_offset) > 2400 && get_right_counter_value(right_offset) > 2400))
+				{
+					left = NORMAL_SPEED / 2;
+					right = 0;
+					left_snapshot = get_left_counter_value(left_offset);
+					is_turning = 1;
+					map[CHECKPOINT_A_INDEX] = 1;
+				} //arrive C
+				else if (index == CHECKPOINT_B_INDEX && (get_left_counter_value(left_offset) > 3400 && get_right_counter_value(right_offset) > 3400)) {
+					left = 0;
+					right = NORMAL_SPEED / 2;
+					right_snapshot = get_right_counter_value(right_offset);
+					is_turning = 1;
+					map[CHECKPOINT_B_INDEX] = 1;
+				} //arrive D
+				else if (index == CHECKPOINT_C_INDEX && (get_left_counter_value(left_offset) > 7200 && get_right_counter_value(right_offset) > 7200)) {
+					left = 0;
+					right = NORMAL_SPEED / 2;
+					right_snapshot = get_right_counter_value(right_offset);
+					is_turning = 1;
+					map[CHECKPOINT_C_INDEX] = 1;
+				} //arrive E
+				else if (index == CHECKPOINT_D_INDEX && (get_left_counter_value(left_offset) > 8900 && get_right_counter_value(right_offset) > 8900)) {
+					left = NORMAL_SPEED / 2;
+					right = 0;
+					left_snapshot = get_left_counter_value(left_offset);
+					is_turning = 1;
+					map[CHECKPOINT_D_INDEX] = 1;
+				} // arrive A
+				else if (index == CHECKPOINT_E_INDEX && (get_left_counter_value(left_offset) > 9400 && get_right_counter_value(right_offset) > 9400)) {
+					left = NORMAL_SPEED / 2;
+					right = 0;
+					left_snapshot = get_left_counter_value(left_offset);
+					is_turning = 1;
+					map[CHECKPOINT_E_INDEX] = 1;
+				}
+			/*}*/
+
+//			set_bar_count();
+		} else {
+			// finishing turning at B
+			if (index == CHECKPOINT_B_INDEX) {
+				if ( get_left_counter_value(left_offset) > (left_snapshot + 600)) {
+					is_turning = 0;
+					left_snapshot = 0;
+				}
+			}
+			// finishing turning at C
+			else if (index == CHECKPOINT_C_INDEX) {
+				if ( get_right_counter_value(right_offset) > (right_snapshot + 600)) {
+					is_turning = 0;
+					right_snapshot = 0;
+
+					left = NORMAL_SPEED;
+					right = 18000;
+					lock = 1;
+				}
+			} // finishing turning at D
+			else if (index == CHECKPOINT_D_INDEX) {
+				if ( get_right_counter_value(right_offset) > (right_snapshot + 400)) {
+					is_turning = 0;
+					right_snapshot = 0;
+
+					lock = 0;
+				}
+			} // finishing turning at E
+			else if (index == CHECKPOINT_E_INDEX) {
+				if ( get_left_counter_value(left_offset) > (left_snapshot + 600)) {
+					is_turning = 0;
+					left_snapshot = 0;
+				}
+			} // finishing turning at A, expect
+			else if (index == CHECKPOINT_A_INDEX && map[CHECKPOINT_E_INDEX] == 1) {
+				if ( get_left_counter_value(left_offset) > (left_snapshot + 600)) {
+					is_turning = 0;
+					left_snapshot = 0;
+					left_offset = __HAL_TIM_GET_COUNTER(&htim2) - 200;
+					right_offset = __HAL_TIM_GET_COUNTER(&htim5) - 200;
+					map[CHECKPOINT_A_INDEX] = 0;
+					map[CHECKPOINT_B_INDEX] = 0;
+					map[CHECKPOINT_C_INDEX] = 0;
+					map[CHECKPOINT_D_INDEX] = 0;
+					map[CHECKPOINT_E_INDEX] = 0;
+				}
 			}
 		}
 
 
-
-		// 0 is leftmost
+//		// 0 is leftmost
 //		snprintf(buffer, sizeof(buffer), "[%c%c%c%c%c] %d mm",
 //				print_true(IS_NTH_BIT_ONE(sensor_array_value, 0)),
 //				print_true(IS_NTH_BIT_ONE(sensor_array_value, 1)),
@@ -848,7 +972,8 @@ int main(void)
 //				, Distance
 //		);
 
-		snprintf(buffer, sizeof(buffer), "%"PRIu32" mm, %"PRIu32" s", Distance, speed);
+		// snprintf(buffer, sizeof(buffer), "%"PRIu32" mm, %"PRIu32" s", Distance, speed);
+		snprintf(buffer, sizeof(buffer), "bar_count %d", bar_count);
 		ssd1306_SetCursor(0, 0);
 		ssd1306_WriteString(buffer, Font_11x18, White);
 

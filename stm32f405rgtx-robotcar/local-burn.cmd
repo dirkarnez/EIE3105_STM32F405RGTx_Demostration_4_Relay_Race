@@ -12,4 +12,6 @@ SET PATH=^
 %SOFTWARES_DIR%\STM32CubeIDE-portable-v1.6.1\plugins\com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_2.1.400.202404281720\tools\bin;^
 %PROGRAM_FILES%\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin;
 
-cd Debug && ( (  STM32_Programmer_CLI.exe -c port=SWD freq=4000 -w RobotCar.elf -s && echo ok ) || echo failed ) && pause
+cd Debug && ( (  STM32_Programmer_CLI.exe -c port=SWD freq=4000 -w RobotCar.elf -s && echo ok ) || echo failed ) &&^
+C:\Windows\System32\timeout.exe /t 5 &&^
+exit
